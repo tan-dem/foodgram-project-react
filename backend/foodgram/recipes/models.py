@@ -124,19 +124,19 @@ class Subscription(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscriber'
+        related_name="subscriber",
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscriptions'
+        related_name="subscriptions",
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_subscription',
+                fields=["user", "author"],
+                name="unique_subscription",
             )
         ]
 
@@ -150,19 +150,19 @@ class Favorite(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='favorites'
+        related_name="favorites",
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='is_favorited'
+        related_name="is_favorited",
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_favorite',
+                fields=["user", "recipe"],
+                name="unique_favorite",
             )
         ]
 
@@ -176,19 +176,19 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='shopping_cart'
+        related_name="shopping_cart",
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='is_in_shopping_cart'
+        related_name="is_in_shopping_cart",
     )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_purchase',
+                fields=["user", "recipe"],
+                name="unique_purchase",
             )
         ]
 
