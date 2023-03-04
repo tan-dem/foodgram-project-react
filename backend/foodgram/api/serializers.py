@@ -5,6 +5,69 @@ from users.models import User
 from .fields import Base64ImageField
 
 
+class UserCreateSerializer(serializers.ModelSerializer):
+    """User model serializer, write only."""
+
+    class Meta:
+        model = User
+        fields = ("email", "username", "first_name", "last_name", "password")
+        extra_kwargs = {"password": {"write_only": True}}
+
+    def validate(self, data):
+        email = data["email"]
+        first_name = data["first_name"]
+        last_name = data["last_name"]
+
+        if not email or not first_name or not last_name:
+            raise serializers.ValidationError("This field is required!")
+
+        return data
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """User model serializer, read only."""
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "email", "id", "username", "first_name",
+            "last_name", "is_subscribed",
+        )
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get("request").user
+        if user.is_anonymous:
+            return False
+        return Subscription.objects.filter(user=user, author=obj.id).exists()
+
+
+class SubscriptionSerializer(UserProfileSerializer):
+    """Subscription model serializer."""
+
+    recipes = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "email", "id", "username", "first_name", "last_name",
+            "is_subscribed", "recipes", "recipes_count",
+        )
+
+    def get_recipes(self, obj):
+        request = self.context.get("request")
+        recipes = obj.recipes.all()
+        recipes_limit = request.query_params.get("recipes_limit")
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
+        return RecipeShortSerializer(recipes, many=True).data
+
+    @staticmethod
+    def get_recipes_count(obj):
+        return obj.recipes.count()
+
+
 class IngredientSerializer(serializers.ModelSerializer):
     """Ingredient model serializer."""
 
@@ -60,7 +123,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
     """Recipe model serializer, read only."""
 
     tags = TagSerializer(many=True, read_only=True)
-    author =
+    author = UserProfileSerializer(read_only=True)
     ingredients = serializers.SerializerMethodField(read_only=True)
     is_favorited = serializers.SerializerMethodField(read_only=True)
     is_in_shopping_cart = serializers.SerializerMethodField(read_only=True)
@@ -212,5 +275,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         context = {"request": request}
         return RecipeShortSerializer(instance.recipe, context=context).data
+
 
 
