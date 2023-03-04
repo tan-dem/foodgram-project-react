@@ -183,13 +183,13 @@ class ShoppingCart(models.Model):
         related_name="is_in_shopping_cart",
     )
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "recipe"],
-                name="unique_purchase",
-            )
-        ]
+    # class Meta:
+    #     constraints = [
+    #         models.UniqueConstraint(
+    #             fields=["user", "recipe"],
+    #             name="unique_purchase",
+    #         )
+    #     ]
 
     def __str__(self):
         return f"{self.recipe} is in shopping cart of {self.user}"
