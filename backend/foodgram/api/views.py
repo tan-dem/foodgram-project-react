@@ -1,6 +1,19 @@
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from recipes.models import Ingredient, Tag
-from .serializers import IngredientSerializer, TagSerializer
+from recipes.models import Ingredient, Tag, Recipe, Favorite
+from .serializers import (
+    IngredientSerializer,
+    TagSerializer,
+    RecipeReadSerializer,
+    RecipeCreateSerializer,
+    FavoriteSerializer,
+    ShoppingCartSerializer,
+)
 
 
 class IngredientsViewSet(ReadOnlyModelViewSet):
@@ -15,3 +28,49 @@ class TagsViewSet(ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class RecipeViewSet(ModelViewSet):
+    """ViewSet for Recipe [GET, GET-list, POST, PATCH, DELETE]."""
+
+    queryset = Recipe.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ("retrieve", "list"):
+            return RecipeReadSerializer
+        return RecipeCreateSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    @action(detail=False, methods=["get"])
+    def download_shopping_cart(self, request):
+        user = request.user
+
+        if not user.shoppingcart.exists():
+            return Response(
+                "Shopping cart is empty",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        text = "Shopping list:\n\n"
+        ingredient_name = "recipe__ingredients__name"
+        ingredient_unit = "recipe__ingredients__measurement_unit"
+        ingredient_qty = "recipe__recipeingredient__amount"
+        ingredient_qty_sum = "recipe__recipeingredient__amount__sum"
+        shopping_cart = (
+            user.shopping_cart.select_related("recipe")
+            .values(ingredient_name, ingredient_unit)
+            .annotate(Sum(ingredient_qty))
+            .order_by(ingredient_name)
+        )
+
+        for _ in shopping_cart:
+            text += (
+                f"{_[ingredient_name]} ({_[ingredient_unit]})"
+                f" — {_[ingredient_qty_sum]}\n"
+            )
+        response = HttpResponse(text, content_type="text/plain")
+        filename = "shopping_list.txt"
+        response["Content-Disposition"] = f"attachment; filename={filename}"
+        return response

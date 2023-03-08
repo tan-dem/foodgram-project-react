@@ -51,10 +51,12 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
         "pk",
         "recipe",
         "ingredient",
+        "amount",
     )
     list_editable = (
         "recipe",
         "ingredient",
+        "amount",
     )
     empty_value_display = "-empty-"
 
