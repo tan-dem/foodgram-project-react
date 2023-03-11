@@ -5,7 +5,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from recipes.models import Ingredient, Tag, Recipe, Favorite
+from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
+from .mixins import CreateDestroyViewSet
 from .serializers import (
     IngredientSerializer,
     TagSerializer,
@@ -47,9 +48,9 @@ class RecipeViewSet(ModelViewSet):
     def download_shopping_cart(self, request):
         user = request.user
 
-        if not user.shoppingcart.exists():
+        if not user.shopping_cart.exists():
             return Response(
-                "Shopping cart is empty",
+                {"errors": "Shopping cart is empty"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -74,3 +75,83 @@ class RecipeViewSet(ModelViewSet):
         filename = "shopping_list.txt"
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+
+
+class ShoppingCartViewSet(CreateDestroyViewSet):
+    """ViewSet for ShoppingCart [POST, DELETE]."""
+
+    serializer_class = ShoppingCartSerializer
+
+    def get_queryset(self):
+        return self.request.user.shopping_cart.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["recipe_id"] = self.kwargs.get("recipe_id")
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            recipe=get_object_or_404(
+                Recipe,
+                id=self.kwargs.get("recipe_id"),
+            ),
+        )
+
+    @action(detail=True, methods=["delete"])
+    def delete(self, request, recipe_id):
+        if (
+            not self.request.user.shopping_cart.select_related("recipe")
+            .filter(recipe_id=recipe_id)
+            .exists()
+        ):
+            return Response(
+                {"errors": "Recipe is not in shopping cart"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        get_object_or_404(
+            ShoppingCart,
+            user=request.user, recipe=recipe_id,
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FavoriteViewSet(CreateDestroyViewSet):
+    """ViewSet for Favorite [POST, DELETE]."""
+
+    serializer_class = FavoriteSerializer
+
+    def get_queryset(self):
+        return self.request.user.favorites.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["recipe_id"] = self.kwargs.get("recipe_id")
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            recipe=get_object_or_404(
+                Recipe,
+                id=self.kwargs.get("recipe_id"),
+            ),
+        )
+
+    @action(detail=True, methods=["delete"])
+    def delete(self, request, recipe_id):
+        if (
+            not self.request.user.favorites.select_related("recipe")
+            .filter(recipe_id=recipe_id)
+            .exists()
+        ):
+            return Response(
+                {"errors": "Recipe is not in favorites"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        get_object_or_404(
+            Favorite,
+            user=request.user, recipe=recipe_id,
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
