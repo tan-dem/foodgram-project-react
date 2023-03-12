@@ -1,45 +1,73 @@
+from django.contrib.auth.hashers import check_password
+from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
+                                UserSerializer)
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingCart, Subscription, Tag)
 from rest_framework import serializers
 from users.models import User
+
 from .fields import Base64ImageField
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
+class CustomUserCreateSerializer(UserCreateSerializer):
     """User model serializer, write only."""
 
     class Meta:
         model = User
         fields = ("email", "username", "first_name", "last_name", "password")
-        extra_kwargs = {"password": {"write_only": True}}
-
-    def validate(self, data):
-        email = data["email"]
-        first_name = data["first_name"]
-        last_name = data["last_name"]
-
-        if not email or not first_name or not last_name:
-            raise serializers.ValidationError("This field is required!")
-
-        return data
+        required_fields = (
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "password",
+        )
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(UserSerializer):
     """User model serializer, read only."""
+
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = (
-            "email", "id", "username", "first_name",
-            "last_name", "is_subscribed",
+            "email",
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "is_subscribed",
         )
 
     def get_is_subscribed(self, obj):
+        return (
+            self.context.get("request").user.is_authenticated
+            and Subscription.objects.filter(
+                user=self.context.get("request").user, author=obj
+            ).exists()
+        )
+
+
+class SetPasswordSerializer(PasswordSerializer):
+    """Serializer for setting password of the current user."""
+
+    current_password = serializers.CharField(
+        required=True, label="Current password"
+    )
+
+    def validate(self, data):
         user = self.context.get("request").user
-        if user.is_anonymous:
-            return False
-        return Subscription.objects.filter(user=user, author=obj.id).exists()
+        if data["new_password"] == data["current_password"]:
+            raise serializers.ValidationError(
+                {"new_password": "New password must be different"}
+            )
+        check_current = check_password(data["current_password"], user.password)
+        if check_current is False:
+            raise serializers.ValidationError({
+                "current_password": "Invalid password"
+            })
+        return data
 
 
 class SubscriptionSerializer(UserProfileSerializer):
@@ -51,16 +79,31 @@ class SubscriptionSerializer(UserProfileSerializer):
     class Meta:
         model = User
         fields = (
-            "email", "id", "username", "first_name", "last_name",
-            "is_subscribed", "recipes", "recipes_count",
+            "email",
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "is_subscribed",
+            "recipes",
+            "recipes_count",
         )
 
+    def validate(self, data):
+        user = self.context.get("request").user
+        author = self.context.get("author_id")
+        if user.id == int(author):
+            raise serializers.ValidationError(
+                {"errors": "You cannot subscribe to yourself"}
+            )
+        if Subscription.objects.filter(user=user, author=author).exists():
+            raise serializers.ValidationError(
+                {"errors": "You are already subscribed to this user"}
+            )
+        return data
+
     def get_recipes(self, obj):
-        request = self.context.get("request")
         recipes = obj.recipes.all()
-        recipes_limit = request.query_params.get("recipes_limit")
-        if recipes_limit:
-            recipes = recipes[:int(recipes_limit)]
         return RecipeShortSerializer(recipes, many=True).data
 
     @staticmethod
@@ -163,8 +206,14 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
-            "id", "author", "ingredients", "tags",
-            "image", "name", "text", "cooking_time",
+            "id",
+            "author",
+            "ingredients",
+            "tags",
+            "image",
+            "name",
+            "text",
+            "cooking_time",
         )
 
     def validate(self, data):
@@ -173,34 +222,34 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         for ingredient in ingredients:
             ingredient_id = ingredient["id"]
             if ingredient_id in ingredients_list:
-                raise serializers.ValidationError({
-                    "ingredients": "This ingredient was already added!"
-                })
+                raise serializers.ValidationError(
+                    {"ingredients": "This ingredient was already added!"}
+                )
             ingredients_list.append(ingredient_id)
             amount = ingredient["amount"]
             if int(amount) <= 0:
-                raise serializers.ValidationError({
-                    "amount": "Quantity of ingredient must be > 0!"
-                })
+                raise serializers.ValidationError(
+                    {"amount": "Quantity of ingredient must be > 0!"}
+                )
 
         tags = data["tags"]
         if not tags:
-            raise serializers.ValidationError({
-                "tags": "Choose at least 1 tag!"
-            })
+            raise serializers.ValidationError(
+                {"tags": "Choose at least 1 tag!"}
+            )
         tags_list = []
         for tag in tags:
             if tag in tags_list:
-                raise serializers.ValidationError({
-                    "tags": "This tag was already added!"
-                })
+                raise serializers.ValidationError(
+                    {"tags": "This tag was already added!"}
+                )
             tags_list.append(tag)
 
         cooking_time = data["cooking_time"]
         if int(cooking_time) <= 0:
-            raise serializers.ValidationError({
-                "cooking_time": "Cooking time must be > 0!"
-            })
+            raise serializers.ValidationError(
+                {"cooking_time": "Cooking time must be > 0!"}
+            )
         return data
 
     @staticmethod
@@ -275,6 +324,3 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         context = {"request": request}
         return RecipeShortSerializer(instance.recipe, context=context).data
-
-
-
