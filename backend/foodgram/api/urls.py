@@ -7,7 +7,10 @@ from .views import (
     RecipeViewSet,
     ShoppingCartViewSet,
     FavoriteViewSet,
+    SubscriptionViewSet,
 )
+
+app_name = "api"
 
 router = DefaultRouter()
 router.register("ingredients", IngredientsViewSet, basename="ingredients")
@@ -22,6 +25,12 @@ router.register(
     r"recipes/(?P<recipe_id>\d+)/favorite",
     FavoriteViewSet,
     basename="favorites",
+)
+router.register("subscriptions", SubscriptionViewSet, basename="subscriptions")
+router.register(
+    r"users/(?P<user_id>\d+)/subscribe",
+    SubscriptionViewSet,
+    basename="subscribe",
 )
 
 urlpatterns = [

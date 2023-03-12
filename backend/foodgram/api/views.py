@@ -1,12 +1,14 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart
-from .mixins import CreateDestroyViewSet
+from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart, Subscription
+from users.models import User
+from .mixins import CreateDestroyViewSet, ListCreateDestroyViewSet
 from .serializers import (
     IngredientSerializer,
     TagSerializer,
@@ -14,6 +16,10 @@ from .serializers import (
     RecipeCreateSerializer,
     FavoriteSerializer,
     ShoppingCartSerializer,
+    SetPasswordSerializer,
+    CustomUserCreateSerializer,
+    UserProfileSerializer,
+    SubscriptionSerializer,
 )
 
 
@@ -153,5 +159,56 @@ class FavoriteViewSet(CreateDestroyViewSet):
         get_object_or_404(
             Favorite,
             user=request.user, recipe=recipe_id,
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CustomUserViewSet(UserViewSet):
+    """ViewSet for User [GET, GET-list, POST]."""
+
+    queryset = User.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'set_password':
+            return SetPasswordSerializer
+        if self.action == 'create':
+            return CustomUserCreateSerializer
+        return UserProfileSerializer
+
+
+class SubscriptionViewSet(ListCreateDestroyViewSet):
+    """ViewSet for Subscription [GET-list, POST, DELETE]."""
+
+    serializer_class = SubscriptionSerializer
+
+    def get_queryset(self):
+        return self.request.user.subscriptions.all()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['author_id'] = self.kwargs.get('user_id')
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user,
+            author=get_object_or_404(
+                User,
+                id=self.kwargs.get('user_id')
+            )
+        )
+
+    @action(detail=True, methods=["delete"])
+    def delete(self, request, user_id):
+        get_object_or_404(User, id=user_id)
+        if not Subscription.objects.filter(
+                user=request.user, author_id=user_id
+        ).exists():
+            return Response(
+                {'errors': 'You were not subscribed to this user'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        get_object_or_404(
+            Subscription, user=request.user, author_id=user_id
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
