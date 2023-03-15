@@ -26,7 +26,7 @@ router.register(
     FavoriteViewSet,
     basename="favorites",
 )
-router.register("subscriptions", SubscriptionViewSet, basename="subscriptions")
+router.register("users/subscriptions", SubscriptionViewSet, basename="subscriptions")
 router.register(
     r"users/(?P<user_id>\d+)/subscribe",
     SubscriptionViewSet,

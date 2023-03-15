@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
                             Subscription, Tag)
@@ -11,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from users.models import User
 
+from .filters import IngredientSearchFilter, RecipesFilterSet
 from .mixins import CreateDestroyViewSet, ListCreateDestroyViewSet
 from .pagination import CustomPageLimitPagination
 from .permissions import IsAuthorOrReadOnly
@@ -27,6 +29,8 @@ class IngredientsViewSet(ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    filter_backends = (IngredientSearchFilter,)
+    search_fields = ("^name",)
 
 
 class TagsViewSet(ReadOnlyModelViewSet):
@@ -43,6 +47,8 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = CustomPageLimitPagination
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipesFilterSet
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "list"):
