@@ -2,25 +2,22 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
+from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
+                            Subscription, Tag)
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from recipes.models import Ingredient, Tag, Recipe, Favorite, ShoppingCart, Subscription
 from users.models import User
+
 from .mixins import CreateDestroyViewSet, ListCreateDestroyViewSet
-from .serializers import (
-    IngredientSerializer,
-    TagSerializer,
-    RecipeReadSerializer,
-    RecipeCreateSerializer,
-    FavoriteSerializer,
-    ShoppingCartSerializer,
-    SetPasswordSerializer,
-    CustomUserCreateSerializer,
-    UserProfileSerializer,
-    SubscriptionSerializer,
-)
+from .permissions import IsAuthorOrReadOnly
+from .serializers import (CustomUserCreateSerializer, FavoriteSerializer,
+                          IngredientSerializer, RecipeCreateSerializer,
+                          RecipeReadSerializer, SetPasswordSerializer,
+                          ShoppingCartSerializer, SubscriptionSerializer,
+                          TagSerializer, UserProfileSerializer)
 
 
 class IngredientsViewSet(ReadOnlyModelViewSet):
@@ -28,6 +25,7 @@ class IngredientsViewSet(ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
 
 class TagsViewSet(ReadOnlyModelViewSet):
@@ -35,12 +33,14 @@ class TagsViewSet(ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
 
 class RecipeViewSet(ModelViewSet):
     """ViewSet for Recipe [GET, GET-list, POST, PATCH, DELETE]."""
 
     queryset = Recipe.objects.all()
+    permission_classes = (IsAuthorOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "list"):
@@ -118,7 +118,8 @@ class ShoppingCartViewSet(CreateDestroyViewSet):
             )
         get_object_or_404(
             ShoppingCart,
-            user=request.user, recipe=recipe_id,
+            user=request.user,
+            recipe=recipe_id,
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -158,7 +159,8 @@ class FavoriteViewSet(CreateDestroyViewSet):
             )
         get_object_or_404(
             Favorite,
-            user=request.user, recipe=recipe_id,
+            user=request.user,
+            recipe=recipe_id,
         ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -167,11 +169,12 @@ class CustomUserViewSet(UserViewSet):
     """ViewSet for User [GET, GET-list, POST]."""
 
     queryset = User.objects.all()
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self):
-        if self.action == 'set_password':
+        if self.action == "set_password":
             return SetPasswordSerializer
-        if self.action == 'create':
+        if self.action == "create":
             return CustomUserCreateSerializer
         return UserProfileSerializer
 
@@ -186,27 +189,24 @@ class SubscriptionViewSet(ListCreateDestroyViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['author_id'] = self.kwargs.get('user_id')
+        context["author_id"] = self.kwargs.get("user_id")
         return context
 
     def perform_create(self, serializer):
         serializer.save(
             user=self.request.user,
-            author=get_object_or_404(
-                User,
-                id=self.kwargs.get('user_id')
-            )
+            author=get_object_or_404(User, id=self.kwargs.get("user_id")),
         )
 
     @action(detail=True, methods=["delete"])
     def delete(self, request, user_id):
         get_object_or_404(User, id=user_id)
         if not Subscription.objects.filter(
-                user=request.user, author_id=user_id
+            user=request.user, author_id=user_id
         ).exists():
             return Response(
-                {'errors': 'You were not subscribed to this user'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"errors": "You were not subscribed to this user"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         get_object_or_404(
             Subscription, user=request.user, author_id=user_id
