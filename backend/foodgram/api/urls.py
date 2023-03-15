@@ -5,8 +5,8 @@ from .views import (
     IngredientsViewSet,
     TagsViewSet,
     RecipeViewSet,
-    ShoppingCartViewSet,
-    FavoriteViewSet,
+    # ShoppingCartViewSet,
+    # FavoriteViewSet,
     SubscriptionViewSet,
 )
 
@@ -16,14 +16,24 @@ router = DefaultRouter()
 router.register("ingredients", IngredientsViewSet, basename="ingredients")
 router.register("tags", TagsViewSet, basename="tags")
 router.register("recipes", RecipeViewSet, basename="recipes")
+# router.register(
+#     r"recipes/(?P<recipe_id>\d+)/shopping_cart",
+#     ShoppingCartViewSet,
+#     basename="shopping_cart",
+# )
 router.register(
     r"recipes/(?P<recipe_id>\d+)/shopping_cart",
-    ShoppingCartViewSet,
+    RecipeViewSet,
     basename="shopping_cart",
 )
+# router.register(
+#     r"recipes/(?P<recipe_id>\d+)/favorite",
+#     FavoriteViewSet,
+#     basename="favorites",
+# )
 router.register(
     r"recipes/(?P<recipe_id>\d+)/favorite",
-    FavoriteViewSet,
+    RecipeViewSet,
     basename="favorites",
 )
 router.register("users/subscriptions", SubscriptionViewSet, basename="subscriptions")
