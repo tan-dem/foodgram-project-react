@@ -12,6 +12,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from users.models import User
 
 from .mixins import CreateDestroyViewSet, ListCreateDestroyViewSet
+from .pagination import CustomPageLimitPagination
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (CustomUserCreateSerializer, FavoriteSerializer,
                           IngredientSerializer, RecipeCreateSerializer,
@@ -41,6 +42,7 @@ class RecipeViewSet(ModelViewSet):
 
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
+    pagination_class = CustomPageLimitPagination
 
     def get_serializer_class(self):
         if self.action in ("retrieve", "list"):
@@ -170,6 +172,7 @@ class CustomUserViewSet(UserViewSet):
 
     queryset = User.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
+    pagination_class = CustomPageLimitPagination
 
     def get_serializer_class(self):
         if self.action == "set_password":
@@ -183,6 +186,7 @@ class SubscriptionViewSet(ListCreateDestroyViewSet):
     """ViewSet for Subscription [GET-list, POST, DELETE]."""
 
     serializer_class = SubscriptionSerializer
+    pagination_class = CustomPageLimitPagination
 
     def get_queryset(self):
         return self.request.user.subscriptions.all()
