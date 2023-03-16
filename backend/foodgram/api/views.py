@@ -5,10 +5,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
                             Subscription, Tag)
-from rest_framework import status
+from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from users.models import User
 
@@ -20,6 +21,7 @@ from .serializers import (CustomUserCreateSerializer, FavoriteSerializer,
                           IngredientSerializer, RecipeCreateSerializer,
                           RecipeReadSerializer, SetPasswordSerializer,
                           ShoppingCartSerializer, SubscriptionSerializer,
+                          SubscriptionCreateSerializer,
                           TagSerializer, UserProfileSerializer)
 
 
@@ -226,37 +228,78 @@ class CustomUserViewSet(UserViewSet):
         return UserProfileSerializer
 
 
-class SubscriptionViewSet(ListCreateDestroyViewSet):
-    """ViewSet for Subscription [GET-list, POST, DELETE]."""
+# class SubscriptionViewSet(ListCreateDestroyViewSet):
+#     """ViewSet for Subscription [GET-list, POST, DELETE]."""
+#
+#     serializer_class = SubscriptionSerializer
+#     pagination_class = CustomPageLimitPagination
+#
+#     def get_queryset(self):
+#         return User.objects.filter(subscriptions__user=self.request.user)
+#
+#     def get_serializer_class(self):
+#         if self.action in ("list",):
+#             return SubscriptionSerializer
+#         return SubscriptionCreateSerializer
+#
+#     def get_serializer_context(self):
+#         context = super().get_serializer_context()
+#         context["author_id"] = self.kwargs.get("user_id")
+#         return context
+#
+#     def perform_create(self, serializer):
+#         serializer.save(
+#             user=self.request.user,
+#             author=get_object_or_404(User, id=self.kwargs.get("user_id")),
+#         )
+#
+#     @action(detail=True, methods=["delete"])
+#     def delete(self, request, user_id):
+#         get_object_or_404(User, id=user_id)
+#         if not Subscription.objects.filter(
+#             user=request.user, author_id=user_id
+#         ).exists():
+#             return Response(
+#                 {"errors": "You were not subscribed to this user"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         get_object_or_404(
+#             Subscription, user=request.user, author_id=user_id
+#         ).delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """ViewSet for Subscription [GET-list]."""
 
     serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
     pagination_class = CustomPageLimitPagination
 
     def get_queryset(self):
-        return self.request.user.subscriptions.all()
+        # return self.request.user.subscriber.all()
+        return User.objects.filter(subscriptions__user=self.request.user)
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["author_id"] = self.kwargs.get("user_id")
-        return context
 
-    def perform_create(self, serializer):
-        serializer.save(
-            user=self.request.user,
-            author=get_object_or_404(User, id=self.kwargs.get("user_id")),
+class SubscriptionView(APIView):
+    """ViewSet for Subscription [POST, DELETE]."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        data = {'user': request.user.id, 'author': user_id}
+        serializer = SubscriptionCreateSerializer(
+            data=data, context={'request': request}
         )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["delete"])
     def delete(self, request, user_id):
-        get_object_or_404(User, id=user_id)
-        if not Subscription.objects.filter(
-            user=request.user, author_id=user_id
-        ).exists():
-            return Response(
-                {"errors": "You were not subscribed to this user"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        get_object_or_404(
-            Subscription, user=request.user, author_id=user_id
-        ).delete()
+        user = request.user
+        author = get_object_or_404(User, id=user_id)
+        instance = get_object_or_404(
+            Subscription, user=user, author=author
+        )
+        instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

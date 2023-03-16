@@ -7,7 +7,9 @@ from .views import (
     RecipeViewSet,
     # ShoppingCartViewSet,
     # FavoriteViewSet,
-    SubscriptionViewSet,
+    # SubscriptionViewSet,
+    SubscriptionListViewSet,
+    SubscriptionView,
 )
 
 app_name = "api"
@@ -36,15 +38,17 @@ router.register(
     RecipeViewSet,
     basename="favorites",
 )
-router.register("users/subscriptions", SubscriptionViewSet, basename="subscriptions")
-router.register(
-    r"users/(?P<user_id>\d+)/subscribe",
-    SubscriptionViewSet,
-    basename="subscribe",
-)
+# router.register("users/subscriptions", SubscriptionViewSet, basename="subscriptions")
+router.register("users/subscriptions", SubscriptionListViewSet, basename="subscriptions")
+# router.register(
+#     r"users/(?P<user_id>\d+)/subscribe",
+#     SubscriptionViewSet,
+#     basename="subscribe",
+# )
 
 urlpatterns = [
     path("", include(router.urls)),
     path("", include("djoser.urls")),
     path("auth/", include("djoser.urls.authtoken")),
+    path("users/<int:user_id>/subscribe/", SubscriptionView.as_view(), name="subscribe")
 ]

@@ -89,26 +89,97 @@ class SubscriptionSerializer(UserProfileSerializer):
             "recipes_count",
         )
 
-    def validate(self, data):
-        user = self.context.get("request").user
-        author = self.context.get("author_id")
-        if user.id == int(author):
-            raise serializers.ValidationError(
-                {"errors": "You cannot subscribe to yourself"}
-            )
-        if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError(
-                {"errors": "You are already subscribed to this user"}
-            )
-        return data
+    # def validate(self, data):
+    #     user = self.context.get("request").user
+    #     author = self.context.get("author_id")
+    #     if user.id == int(author):
+    #         raise serializers.ValidationError(
+    #             {"errors": "You cannot subscribe to yourself"}
+    #         )
+    #     if Subscription.objects.filter(user=user, author=author).exists():
+    #         raise serializers.ValidationError(
+    #             {"errors": "You are already subscribed to this user"}
+    #         )
+    #     return data
 
     def get_recipes(self, obj):
+        request = self.context.get('request')
         recipes = obj.recipes.all()
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
         return RecipeShortSerializer(recipes, many=True).data
 
     @staticmethod
     def get_recipes_count(obj):
         return obj.recipes.count()
+
+
+# class SubscriptionSerializer(serializers.ModelSerializer):
+#     """Subscription model serializer, read only."""
+#
+#     email = serializers.ReadOnlyField()
+#     id = serializers.SerializerMethodField(read_only=True)
+#     username = serializers.ReadOnlyField()
+#     first_name = serializers.ReadOnlyField()
+#     last_name = serializers.ReadOnlyField()
+#     is_subscribed = serializers.SerializerMethodField()
+#     recipes = serializers.SerializerMethodField(read_only=True)
+#     recipes_count = serializers.SerializerMethodField(read_only=True)
+#
+#     class Meta:
+#         model = Subscription
+#         fields = (
+#             "email",
+#             "id",
+#             "username",
+#             "first_name",
+#             "last_name",
+#             "is_subscribed",
+#             "recipes",
+#             "recipes_count",
+#         )
+#
+#     def get_id(self, obj):
+#         return obj.author.id
+#
+#     def get_is_subscribed(self, obj):
+#         return (
+#             self.context.get("request").user.is_authenticated
+#             and Subscription.objects.filter(
+#                 user=self.context.get("request").user, author=obj
+#             ).exists()
+#         )
+#
+#     def get_recipes(self, obj):
+#         request = self.context.get('request')
+#         recipes = obj.recipes.all()
+#         recipes_limit = request.query_params.get('recipes_limit')
+#         if recipes_limit:
+#             recipes = recipes[:int(recipes_limit)]
+#         return RecipeShortSerializer(recipes, many=True).data
+#
+#     @staticmethod
+#     def get_recipes_count(obj):
+#         return obj.recipes.count()
+
+
+class SubscriptionCreateSerializer(serializers.ModelSerializer):
+    """Subscription model serializer, write only."""
+
+    class Meta:
+        model = Subscription
+        fields = ("user", "author")
+
+    def validate(self, data):
+        if data['user'] == data['author']:
+            raise serializers.ValidationError('You cannot subscribe to yourself')
+        return data
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return SubscriptionSerializer(instance.author, context=context).data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
