@@ -64,104 +64,34 @@ class SetPasswordSerializer(PasswordSerializer):
             )
         check_current = check_password(data["current_password"], user.password)
         if check_current is False:
-            raise serializers.ValidationError({
-                "current_password": "Invalid password"
-            })
+            raise serializers.ValidationError(
+                {"current_password": "Invalid password"}
+            )
         return data
 
 
 class SubscriptionSerializer(UserProfileSerializer):
-    """Subscription model serializer."""
+    """Subscription model serializer, read only."""
 
     recipes = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField(read_only=True)
 
-    class Meta:
-        model = User
-        fields = (
-            "email",
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "is_subscribed",
-            "recipes",
-            "recipes_count",
+    class Meta(UserProfileSerializer.Meta):
+        fields = UserProfileSerializer.Meta.fields + (
+            "recipes", "recipes_count"
         )
 
-    # def validate(self, data):
-    #     user = self.context.get("request").user
-    #     author = self.context.get("author_id")
-    #     if user.id == int(author):
-    #         raise serializers.ValidationError(
-    #             {"errors": "You cannot subscribe to yourself"}
-    #         )
-    #     if Subscription.objects.filter(user=user, author=author).exists():
-    #         raise serializers.ValidationError(
-    #             {"errors": "You are already subscribed to this user"}
-    #         )
-    #     return data
-
     def get_recipes(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         recipes = obj.recipes.all()
-        recipes_limit = request.query_params.get('recipes_limit')
+        recipes_limit = request.query_params.get("recipes_limit")
         if recipes_limit:
-            recipes = recipes[:int(recipes_limit)]
+            recipes = recipes[: int(recipes_limit)]
         return RecipeShortSerializer(recipes, many=True).data
 
     @staticmethod
     def get_recipes_count(obj):
         return obj.recipes.count()
-
-
-# class SubscriptionSerializer(serializers.ModelSerializer):
-#     """Subscription model serializer, read only."""
-#
-#     email = serializers.ReadOnlyField()
-#     id = serializers.SerializerMethodField(read_only=True)
-#     username = serializers.ReadOnlyField()
-#     first_name = serializers.ReadOnlyField()
-#     last_name = serializers.ReadOnlyField()
-#     is_subscribed = serializers.SerializerMethodField()
-#     recipes = serializers.SerializerMethodField(read_only=True)
-#     recipes_count = serializers.SerializerMethodField(read_only=True)
-#
-#     class Meta:
-#         model = Subscription
-#         fields = (
-#             "email",
-#             "id",
-#             "username",
-#             "first_name",
-#             "last_name",
-#             "is_subscribed",
-#             "recipes",
-#             "recipes_count",
-#         )
-#
-#     def get_id(self, obj):
-#         return obj.author.id
-#
-#     def get_is_subscribed(self, obj):
-#         return (
-#             self.context.get("request").user.is_authenticated
-#             and Subscription.objects.filter(
-#                 user=self.context.get("request").user, author=obj
-#             ).exists()
-#         )
-#
-#     def get_recipes(self, obj):
-#         request = self.context.get('request')
-#         recipes = obj.recipes.all()
-#         recipes_limit = request.query_params.get('recipes_limit')
-#         if recipes_limit:
-#             recipes = recipes[:int(recipes_limit)]
-#         return RecipeShortSerializer(recipes, many=True).data
-#
-#     @staticmethod
-#     def get_recipes_count(obj):
-#         return obj.recipes.count()
 
 
 class SubscriptionCreateSerializer(serializers.ModelSerializer):
@@ -170,15 +100,24 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ("user", "author")
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Subscription.objects.all(),
+                fields=("user", "author"),
+                message="You are already subscribed to this user",
+            )
+        ]
 
     def validate(self, data):
-        if data['user'] == data['author']:
-            raise serializers.ValidationError('You cannot subscribe to yourself')
+        if data["user"] == data["author"]:
+            raise serializers.ValidationError(
+                "You cannot subscribe to yourself"
+            )
         return data
 
     def to_representation(self, instance):
-        request = self.context.get('request')
-        context = {'request': request}
+        request = self.context.get("request")
+        context = {"request": request}
         return SubscriptionSerializer(instance.author, context=context).data
 
 
@@ -188,7 +127,6 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = ("id", "name", "measurement_unit")
-        # read_only_fields = ("id", "name", "measurement_unit")
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -197,7 +135,6 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ("id", "name", "color", "slug")
-        # read_only_fields = ("id", "name", "color", "slug")
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
@@ -384,12 +321,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = ("user", "recipe")
-        # validators = [
-        #     serializers.UniqueTogetherValidator(
-        #         queryset=ShoppingCart.objects.all(),
-        #         fields=("user", "recipe"),
-        #     )
-        # ]
 
     def to_representation(self, instance):
         request = self.context.get("request")
