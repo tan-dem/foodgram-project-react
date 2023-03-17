@@ -244,20 +244,20 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         tags = data["tags"]
         if not tags:
             raise serializers.ValidationError(
-                {"tags": "Choose at least 1 tag!"}
+                {"tags": "Choose at least 1 tag"}
             )
         tags_list = []
         for tag in tags:
             if tag in tags_list:
                 raise serializers.ValidationError(
-                    {"tags": "This tag was already added!"}
+                    {"tags": "This tag was already added"}
                 )
             tags_list.append(tag)
 
         cooking_time = data["cooking_time"]
         if int(cooking_time) <= 0:
             raise serializers.ValidationError(
-                {"cooking_time": "Cooking time must be > 0!"}
+                {"cooking_time": "Cooking time must be > 0"}
             )
         return data
 

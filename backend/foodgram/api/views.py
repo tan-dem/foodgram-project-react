@@ -46,7 +46,7 @@ class TagsViewSet(ReadOnlyModelViewSet):
 class RecipeViewSet(ModelViewSet):
     """ViewSet for Recipe [GET, GET-list, POST, PATCH, DELETE]."""
 
-    queryset = Recipe.objects.all()
+    queryset = Recipe.objects.all().order_by("-id")
     permission_classes = (IsAuthorOrReadOnly | IsAuthenticatedOrReadOnly,)
     pagination_class = CustomPageLimitPagination
     filter_backends = (DjangoFilterBackend,)
@@ -164,7 +164,7 @@ class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 
 class SubscriptionView(APIView):
-    """ViewSet for Subscription [POST, DELETE]."""
+    """ViewClass for Subscription [POST, DELETE]."""
 
     permission_classes = [IsAuthenticated]
 
