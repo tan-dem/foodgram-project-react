@@ -14,9 +14,6 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    "api.apps.ApiConfig",
-    "recipes.apps.RecipesConfig",
-    "users.apps.UsersConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -27,6 +24,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     "djoser",
     'django_filters',
+    "api.apps.ApiConfig",
+    "recipes.apps.RecipesConfig",
+    "users.apps.UsersConfig",
 ]
 
 MIDDLEWARE = [
