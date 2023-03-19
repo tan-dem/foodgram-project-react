@@ -3,26 +3,41 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from recipes.models import (Favorite, Ingredient, Recipe, ShoppingCart,
-                            Subscription, Tag)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from users.models import User
 
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
+from users.models import User
 from .filters import IngredientSearchFilter, RecipesFilterSet
 from .pagination import CustomPageLimitPagination
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (CustomUserCreateSerializer, FavoriteSerializer,
-                          IngredientSerializer, RecipeCreateSerializer,
-                          RecipeReadSerializer, SetPasswordSerializer,
-                          ShoppingCartSerializer, SubscriptionCreateSerializer,
-                          SubscriptionSerializer, TagSerializer,
-                          UserProfileSerializer)
+from .serializers import (
+    CustomUserCreateSerializer,
+    FavoriteSerializer,
+    IngredientSerializer,
+    RecipeCreateSerializer,
+    RecipeReadSerializer,
+    SetPasswordSerializer,
+    ShoppingCartSerializer,
+    SubscriptionCreateSerializer,
+    SubscriptionSerializer,
+    TagSerializer,
+    UserProfileSerializer,
+)
 
 
 class IngredientsViewSet(ReadOnlyModelViewSet):

@@ -1,12 +1,22 @@
 from django.contrib.auth.hashers import check_password
-from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
-                                UserSerializer)
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Subscription, Tag)
+from djoser.serializers import (
+    PasswordSerializer,
+    UserCreateSerializer,
+    UserSerializer,
+)
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
-from users.models import User
 
-from .fields import Base64ImageField
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Subscription,
+    Tag,
+)
+from users.models import User
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -264,11 +274,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     @staticmethod
     def create_ingredients(ingredients, recipe):
         for ingredient in ingredients:
-            RecipeIngredient.objects.create(
-                recipe=recipe,
-                ingredient=ingredient["id"],
-                amount=ingredient["amount"],
-            )
+            RecipeIngredient.objects.bulk_create([
+                RecipeIngredient(
+                    recipe=recipe,
+                    ingredient=ingredient["id"],
+                    amount=ingredient["amount"],
+                )
+            ])
 
     @staticmethod
     def create_tags(tags, recipe):
