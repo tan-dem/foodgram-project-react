@@ -19,6 +19,13 @@ from recipes.models import (
 from users.models import User
 
 
+def custom_to_representation(self, instance, serializer):
+    request = self.context.get("request")
+    context = {"request": request}
+    data = serializer(instance, context=context).data
+    return data
+
+
 class CustomUserCreateSerializer(UserCreateSerializer):
     """User model serializer, write only."""
 
@@ -126,9 +133,9 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        request = self.context.get("request")
-        context = {"request": request}
-        return SubscriptionSerializer(instance.author, context=context).data
+        return custom_to_representation(
+            self, instance.author, SubscriptionSerializer
+        )
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -296,9 +303,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def to_representation(self, instance):
-        request = self.context.get("request")
-        context = {"request": request}
-        return RecipeReadSerializer(instance, context=context).data
+        return custom_to_representation(
+            self, instance, RecipeReadSerializer
+        )
 
     def update(self, instance, validated_data):
         instance.tags.clear()
@@ -322,9 +329,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        request = self.context.get("request")
-        context = {"request": request}
-        return RecipeShortSerializer(instance.recipe, context=context).data
+        return custom_to_representation(
+            self, instance.recipe, RecipeShortSerializer
+        )
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
@@ -335,6 +342,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         fields = ("user", "recipe")
 
     def to_representation(self, instance):
-        request = self.context.get("request")
-        context = {"request": request}
-        return RecipeShortSerializer(instance.recipe, context=context).data
+        return custom_to_representation(
+            self, instance.recipe, RecipeShortSerializer
+        )
