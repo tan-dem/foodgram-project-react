@@ -121,13 +121,6 @@ class RecipeViewSet(ModelViewSet):
         detail=False, methods=["get"], permission_classes=[IsAuthenticated]
     )
     def download_shopping_cart(self, request):
-
-        # if not user.shopping_cart.exists():
-        #     return Response(
-        #         {"errors": "Shopping cart is empty"},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
-
         return generate_shopping_list(self, request)
 
 
