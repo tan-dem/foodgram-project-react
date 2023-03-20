@@ -8,7 +8,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from recipes.models import (
@@ -146,25 +145,29 @@ class CustomUserViewSet(UserViewSet):
             return CustomUserCreateSerializer
         return UserProfileSerializer
 
+    def get_permissions(self):
+        if self.action == "me":
+            self.permission_classes = [IsAuthenticated]
+        return super().get_permissions()
 
-class SubscriptionListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    """ViewSet for Subscription [GET-list]."""
+    @action(
+        detail=False, methods=["GET"], permission_classes=[IsAuthenticated]
+    )
+    def subscriptions(self, request):
+        queryset = User.objects.filter(subscriptions__user=request.user)
+        pages = self.paginate_queryset(queryset)
+        serializer = SubscriptionSerializer(
+            pages,
+            many=True,
+            context={"request": request},
+        )
+        return self.get_paginated_response(serializer.data)
 
-    serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthenticated]
-    pagination_class = CustomPageLimitPagination
-
-    def get_queryset(self):
-        return User.objects.filter(subscriptions__user=self.request.user)
-
-
-class SubscriptionView(APIView):
-    """ViewClass for Subscription [POST, DELETE]."""
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, user_id):
-        data = {"user": request.user.id, "author": user_id}
+    @action(
+        detail=True, methods=["POST"], permission_classes=[IsAuthenticated]
+    )
+    def subscribe(self, request, id):
+        data = {"user": request.user.id, "author": id}
         serializer = SubscriptionCreateSerializer(
             data=data, context={"request": request}
         )
@@ -172,9 +175,10 @@ class SubscriptionView(APIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, user_id):
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, id):
         user = request.user
-        author = get_object_or_404(User, id=user_id)
+        author = get_object_or_404(User, id=id)
         instance = get_object_or_404(Subscription, user=user, author=author)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
