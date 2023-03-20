@@ -39,7 +39,7 @@ class RecipeAdmin(admin.ModelAdmin):
         "pk",
         "name",
         "author",
-        "is_favorited",
+        "favorite_count",
     )
     list_filter = (
         "author",
@@ -48,8 +48,9 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     empty_value_display = "-empty-"
 
-    def is_favorited(self, obj):
+    def favorite_count(self, obj):
         return f"Favorited {Favorite.objects.filter(recipe=obj).count()} times"
+    favorite_count.short_description = "Qty of addition to favorites"
 
 
 @admin.register(RecipeIngredient)
