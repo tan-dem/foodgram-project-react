@@ -135,3 +135,5 @@ DJOSER = {
         "user_create": "api.serializers.CustomUserCreateSerializer",
     },
 }
+
+FILENAME_FOR_SERVICES = "shopping_list.txt"

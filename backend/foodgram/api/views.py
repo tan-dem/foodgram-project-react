@@ -1,5 +1,3 @@
-from django.db.models import Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
@@ -38,6 +36,7 @@ from .serializers import (
     TagSerializer,
     UserProfileSerializer,
 )
+from .services import generate_shopping_list
 
 
 class IngredientsViewSet(ReadOnlyModelViewSet):
@@ -119,37 +118,18 @@ class RecipeViewSet(ModelViewSet):
             request=request, pk=pk, model=ShoppingCart
         )
 
-    @action(detail=False, methods=["get"])
+    @action(
+        detail=False, methods=["get"], permission_classes=[IsAuthenticated]
+    )
     def download_shopping_cart(self, request):
-        user = request.user
 
-        if not user.shopping_cart.exists():
-            return Response(
-                {"errors": "Shopping cart is empty"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # if not user.shopping_cart.exists():
+        #     return Response(
+        #         {"errors": "Shopping cart is empty"},
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
 
-        text = "Shopping list:\n\n"
-        ingredient_name = "recipe__ingredients__name"
-        ingredient_unit = "recipe__ingredients__measurement_unit"
-        ingredient_qty = "recipe__recipeingredient__amount"
-        ingredient_qty_sum = "recipe__recipeingredient__amount__sum"
-        shopping_cart = (
-            user.shopping_cart.select_related("recipe")
-            .values(ingredient_name, ingredient_unit)
-            .annotate(Sum(ingredient_qty))
-            .order_by(ingredient_name)
-        )
-
-        for _ in shopping_cart:
-            text += (
-                f"{_[ingredient_name]} ({_[ingredient_unit]})"
-                f" — {_[ingredient_qty_sum]}\n"
-            )
-        response = HttpResponse(text, content_type="text/plain")
-        filename = "shopping_list.txt"
-        response["Content-Disposition"] = f"attachment; filename={filename}"
-        return response
+        return generate_shopping_list(self, request)
 
 
 class CustomUserViewSet(UserViewSet):
