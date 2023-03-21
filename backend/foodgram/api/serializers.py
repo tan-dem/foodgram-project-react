@@ -248,22 +248,21 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        return (
-            validate_cooking_time(self, data) and
-            validate_ingredients(self, data) and
-            validate_tags(self, data)
-        )
+        validate_cooking_time(cooking_time=data["cooking_time"])
+        validate_ingredients(ingredients=data["ingredients"])
+        validate_tags(tags=data["tags"])
+        return data
 
     @staticmethod
     def create_ingredients(ingredients, recipe):
-        for ingredient in ingredients:
-            RecipeIngredient.objects.bulk_create([
-                RecipeIngredient(
+        recipe_ingredient_list = [
+            RecipeIngredient(
                     recipe=recipe,
                     ingredient=ingredient["id"],
                     amount=ingredient["amount"],
-                )
-            ])
+                ) for ingredient in ingredients
+        ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredient_list)
 
     @staticmethod
     def create_tags(tags, recipe):

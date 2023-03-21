@@ -1,8 +1,6 @@
 from rest_framework import serializers
 
-
-def validate_ingredients(self, data):
-    ingredients = data["ingredients"]
+def validate_ingredients(ingredients):
     ingredients_list = []
     for ingredient in ingredients:
         ingredient_id = ingredient["id"]
@@ -16,11 +14,10 @@ def validate_ingredients(self, data):
             raise serializers.ValidationError(
                 {"amount": "Quantity of ingredient must be > 0"}
             )
-    return data
+    return ingredients
 
 
-def validate_tags(self, data):
-    tags = data["tags"]
+def validate_tags(tags):
     if not tags:
         raise serializers.ValidationError(
             {"tags": "Choose at least 1 tag"}
@@ -32,13 +29,12 @@ def validate_tags(self, data):
                 {"tags": "This tag was already added"}
             )
         tags_list.append(tag)
-    return data
+    return tags
 
 
-def validate_cooking_time(self, data):
-    cooking_time = data["cooking_time"]
+def validate_cooking_time(cooking_time):
     if int(cooking_time) <= 0:
         raise serializers.ValidationError(
             {"cooking_time": "Cooking time must be > 0"}
         )
-    return data
+    return cooking_time
