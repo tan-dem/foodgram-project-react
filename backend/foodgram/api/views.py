@@ -121,7 +121,7 @@ class RecipeViewSet(ModelViewSet):
         detail=False, methods=["get"], permission_classes=[IsAuthenticated]
     )
     def download_shopping_cart(self, request):
-        return generate_shopping_list(self, request)
+        return generate_shopping_list(request.user)
 
 
 class CustomUserViewSet(UserViewSet):

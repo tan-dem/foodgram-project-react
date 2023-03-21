@@ -1,13 +1,11 @@
+from django.conf import settings
 from django.db.models import Sum
 from django.http import HttpResponse
 from rest_framework.decorators import action
 
-from foodgram.settings import FILENAME_FOR_SERVICES
-
 
 @action(detail=False)
-def generate_shopping_list(self, request):
-    user = request.user
+def generate_shopping_list(user):
     text = "Shopping list:\n\n"
     ingredient_name = "recipe__ingredients__name"
     ingredient_unit = "recipe__ingredients__measurement_unit"
@@ -25,6 +23,6 @@ def generate_shopping_list(self, request):
             f" — {item[ingredient_qty_sum]}\n"
         )
     response = HttpResponse(text, content_type="text/plain")
-    filename = FILENAME_FOR_SERVICES
+    filename = settings.FILENAME_FOR_SERVICES
     response["Content-Disposition"] = f"attachment; filename={filename}"
     return response

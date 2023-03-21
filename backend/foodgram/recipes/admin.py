@@ -50,6 +50,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def favorite_count(self, obj):
         return f"Favorited {Favorite.objects.filter(recipe=obj).count()} times"
+
     favorite_count.short_description = "Qty of addition to favorites"
 
 
