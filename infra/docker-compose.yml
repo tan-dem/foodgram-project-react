@@ -20,9 +20,7 @@ services:
       - ./.env
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: tandem303/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
       - static_value:/app/result_build/build/static/
