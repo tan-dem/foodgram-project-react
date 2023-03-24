@@ -27,8 +27,7 @@ from .validators import (
 def custom_to_representation(self, instance, serializer):
     request = self.context.get("request")
     context = {"request": request}
-    data = serializer(instance, context=context).data
-    return data
+    return serializer(instance, context=context).data
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):

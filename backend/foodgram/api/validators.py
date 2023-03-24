@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+
 def validate_ingredients(ingredients):
     ingredients_list = []
     for ingredient in ingredients:
