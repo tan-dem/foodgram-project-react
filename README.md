@@ -1,6 +1,7 @@
-# Foodgram
+# Foodgram 
+[![foodgram_workflow](https://github.com/tan-dem/foodgram-project-react/actions/workflows/main.yml/badge.svg)](https://github.com/tan-dem/foodgram-project-react/actions/workflows/main.yml)
 
-Web-service where users can post recipes, subscribe to other users' posts, add recipes to favorites, add recipes to shopping cart and download the shopping list including all the necessary ingredients.  
+Web-service [Foodgram](http://51.250.25.38/recipes) where users can post recipes, subscribe to other users' posts, add recipes to favorites, add recipes to shopping cart and download the shopping list including all the necessary ingredients.  
 
 **Technologies:** Python 3.7, Django Rest Framework  
 **Author:** [@tan-dem](https://github.com/tan-dem)
@@ -99,4 +100,4 @@ Response:
 }
 ``` 
 
-Full information with the list of the available endpoints is accessible via `/redoc/`
+Full information with the list of the available endpoints is accessible via [link](http://51.250.25.38/api/docs/)
